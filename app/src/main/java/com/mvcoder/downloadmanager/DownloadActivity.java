@@ -15,7 +15,10 @@ import com.mvcoder.download.FileManager;
 
 import java.io.File;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
+import io.reactivex.Observable;
+import io.reactivex.functions.Consumer;
 import okhttp3.ResponseBody;
 import pub.devrel.easypermissions.AfterPermissionGranted;
 import pub.devrel.easypermissions.EasyPermissions;
@@ -35,7 +38,12 @@ public class DownloadActivity extends AppCompatActivity implements EasyPermissio
         super.onResume();
         if(isFirst){
             isFirst = false;
-            downloadFile();
+            Observable.just(0).delay(1,TimeUnit.SECONDS).subscribe(new Consumer<Integer>() {
+                @Override
+                public void accept(Integer integer) throws Exception {
+                    downloadFile();
+                }
+            });
         }
     }
 
@@ -51,12 +59,12 @@ public class DownloadActivity extends AppCompatActivity implements EasyPermissio
             if(!fileDirectory.exists()){
                 fileDirectory.mkdirs();
             }
-            String downloadFilenname = "hqg.mp4";
-            String url = "http://192.168.2.110:8080/hqg.mp4";
+            String downloadFilenname = "card.mp4";
+            String url = "http://192.168.0.107:8080/card.mp4";
             FileManager.getInstance().download(url, new FileCallBack<ResponseBody>(fileDirectory.getAbsolutePath(), downloadFilenname) {
                 @Override
                 public void onSuccess(ResponseBody responseBody) {
-                    ToastUtils.showShort("下载完成 ：" + ConvertUtils.byte2MemorySize(responseBody.contentLength(),MemoryConstants.MB));
+                   log("下载完成 ：" + ConvertUtils.byte2MemorySize(responseBody.contentLength(),MemoryConstants.MB));
                 }
 
                 @Override

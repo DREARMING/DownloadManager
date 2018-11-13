@@ -33,4 +33,8 @@ public class FileLoadEvent {
     public String getTag() {
         return tag;
     }
+
+    public void setBytesLoaded(long bytesLoaded) {
+        this.bytesLoaded = bytesLoaded;
+    }
 }

@@ -49,7 +49,7 @@ public abstract class FileCallBack<T> {
 
     public void saveFile(ResponseBody body) {
         InputStream is = null;
-        byte[] buf = new byte[2048];
+        byte[] buf = new byte[4096];
         int len;
         FileOutputStream fos = null;
         try {
@@ -65,7 +65,7 @@ public abstract class FileCallBack<T> {
             }
             fos.flush();
             unsubscribe();
-            //onCompleted();
+            onCompleted();
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {

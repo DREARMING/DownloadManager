@@ -2,10 +2,12 @@ package com.mvcoder.download;
 
 
 import android.support.annotation.NonNull;
+import android.util.Log;
 
 import com.mvcoder.download.api.FileApi;
 import com.mvcoder.download.interceptor.ProgressInterceptor;
 
+import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
 import java.lang.ref.WeakReference;
@@ -16,6 +18,7 @@ import java.util.concurrent.TimeUnit;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.functions.Action;
 import io.reactivex.functions.Consumer;
+import io.reactivex.functions.Function;
 import io.reactivex.schedulers.Schedulers;
 import okhttp3.OkHttpClient;
 import okhttp3.ResponseBody;
@@ -76,11 +79,13 @@ public class FileManager {
     public void download(@NonNull final String url, @NonNull final FileCallBack<ResponseBody> callBack) {
         callBack.setTag(url);
         fileApi().download(url)
+                .onBackpressureBuffer()
                 .subscribeOn(Schedulers.io())//请求网络 在调度者的io线程
                 .observeOn(Schedulers.io()) //指定线程保存文件
                 .doOnNext(new Consumer<ResponseBody>() {
                     @Override
                     public void accept(ResponseBody responseBody) throws Exception {
+                        Log.d("Download","doOnNext");
                         callBack.saveFile(responseBody);
                     }
                 })
@@ -89,33 +94,36 @@ public class FileManager {
                     @Override
                     public void run() throws Exception {
                         downloadMap.remove(url);
+                        Log.d("Download", "doOnCancel");
                     }
                 })
-                .subscribe(new Consumer<ResponseBody>() {
+                .subscribe(new Subscriber<ResponseBody>() {
                     @Override
-                    public void accept(ResponseBody responseBody) throws Exception {
-                        callBack.onSuccess(responseBody);
+                    public void onSubscribe(Subscription s) {
+                        downloadMap.put(url,s);
+                        callBack.onStart();
                     }
-                }, new Consumer<Throwable>() {
+
                     @Override
-                    public void accept(Throwable throwable) throws Exception {
+                    public void onNext(ResponseBody responseBody) {
+                        callBack.onSuccess(responseBody);
+                        onComplete();
+                    }
+
+                    @Override
+                    public void onError(Throwable t) {
                         if (downloadMap.get(url) != null) {
                             downloadMap.remove(url);
                         }
-                        callBack.onError(throwable);
+                        callBack.onError(t);
                     }
-                }, new Action() {
+
                     @Override
-                    public void run() throws Exception {
+                    public void onComplete() {
                         if (downloadMap.get(url) != null) {
                             downloadMap.remove(url);
                         }
                         callBack.onCompleted();
-                    }
-                }, new Consumer<Subscription>() {
-                    @Override
-                    public void accept(Subscription subscription) throws Exception {
-                        downloadMap.put(url,subscription);
                     }
                 });
         //.subscribe(new FileSubscriber<ResponseBody>(callBack));
